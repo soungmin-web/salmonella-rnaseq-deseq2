@@ -1,0 +1,97 @@
+# salmonella-rnaseq-deseq2
+
+**Author:** Soungmin Hong (Course *Bioinformatics 2*)
+
+[한국어](#한국어) | [English](#english)
+
+| PCA | Volcano plot |
+|---|---|
+| ![PCA](PCA_plot.jpeg) | ![Volcano](volcano.jpeg) |
+
+| Top 20 genes | GO terms, up-regulated in succinate |
+|---|---|
+| ![Heatmap](TOP.jpeg) | ![GO dotplot](GO_upregulated_dotplot.jpeg) |
+
+## 한국어
+
+### 프로젝트 소개
+
+*Salmonella* Typhimurium을 **글리세롤(glycerol)** 배지와 **숙신산(succinate)** 배지에서 배양했을 때
+유전자 발현이 어떻게 달라지는지 RNA-seq 데이터로 분석한 프로젝트입니다.
+조건별 3개씩 총 6개의 paired-end 샘플을 R로 분석했습니다.
+
+*Bioinformatics 2* 수업(2025)의 실습 프로젝트이며, R Markdown 코드는 수업에서 제공한 템플릿을 바탕으로 합니다.
+
+### 분석 과정
+
+1. `featureCounts`(Rsubread)로 BAM 파일에서 유전자별 read 수 계산
+2. 6개 샘플의 read 합계가 10 미만인 유전자 제외
+3. DESeq2로 차등 발현 분석, apeglm으로 log2 fold change 보정
+4. Count plot, heatmap, volcano plot, MA plot, PCA로 시각화
+5. clusterProfiler로 GO 및 regulon over-representation 분석
+
+### 주요 결과
+
+- 필터를 통과한 4,361개 유전자 중, 숙신산 조건에서 **569개가 증가**하고 **525개가 감소**했습니다(adjusted p < 0.01).
+- PCA에서 두 조건이 PC1(분산의 96%)을 따라 뚜렷하게 나뉩니다.
+- 변화가 가장 유의한 유전자에는 증가한 *ompD*, *sucA*, *sucD*와 감소한 *glpD*, *ahpC*, *dnaK*가 있습니다.
+- 증가한 유전자에는 번역(translation), 리보솜, TCA 회로 관련 GO term이 많이 포함되어 있습니다.
+
+### 파일
+
+| 파일 | 내용 |
+|---|---|
+| `Hands-on_session2-3_template_2025.Rmd` | 분석 코드 |
+| `counts.csv` | `featureCounts` 결과(유전자 4,645개, 샘플 6개) |
+| `genomic.gff` | NCBI RefSeq 유전체 주석, GCF_000022165.1 (ASM2216v1) |
+| `GO2gene.tsv`, `go_terms.tsv`, `regulon2gene.tsv` | enrichment 분석용 유전자 세트 |
+| `*.jpeg` | 결과 그림 |
+
+BAM 파일은 포함하지 않았습니다. 코드는 BAM 파일에서 시작하므로, DESeq2 단계부터 실행하려면
+`counts.csv`를 `count_table`로 불러와야 합니다.
+
+## English
+
+### About
+
+This project uses RNA-seq data to study how gene expression in *Salmonella* Typhimurium differs
+between growth on **glycerol** and growth on **succinate**. Six paired-end samples, three per
+condition, were analysed in R.
+
+It was a hands-on project for the course *Bioinformatics 2* (2025). The R Markdown file is based
+on the template provided by the course.
+
+### Workflow
+
+1. Count reads per gene from BAM files with `featureCounts` (Rsubread)
+2. Remove genes with fewer than 10 reads summed over the six samples
+3. Test for differential expression with DESeq2 and shrink log2 fold changes with apeglm
+4. Visualise with count plots, a heatmap, a volcano plot, an MA plot and PCA
+5. Run GO and regulon over-representation analysis with clusterProfiler
+
+### Main results
+
+- Of 4,361 genes that passed the filter, **569 were up-regulated** and **525 down-regulated** in
+  succinate (adjusted p < 0.01).
+- PCA separates the two conditions clearly along PC1 (96% of the variance).
+- The most significant genes include *ompD*, *sucA* and *sucD* (up) and *glpD*, *ahpC* and *dnaK* (down).
+- GO terms for translation, the ribosome and the TCA cycle are over-represented among the
+  up-regulated genes.
+
+### Files
+
+| File | Content |
+|---|---|
+| `Hands-on_session2-3_template_2025.Rmd` | Analysis code |
+| `counts.csv` | `featureCounts` output (4,645 genes, 6 samples) |
+| `genomic.gff` | NCBI RefSeq annotation, GCF_000022165.1 (ASM2216v1) |
+| `GO2gene.tsv`, `go_terms.tsv`, `regulon2gene.tsv` | Gene sets for enrichment |
+| `*.jpeg` | Figures |
+
+The BAM files are not included. The code starts from them, so `counts.csv` has to be loaded as
+`count_table` to run the analysis from the DESeq2 step.
+
+## Data source
+
+BioProject [PRJNA578747](https://www.ebi.ac.uk/ena/browser/view/PRJNA578747):
+SRR10320667–69 (glycerol), SRR10320670–72 (succinate).

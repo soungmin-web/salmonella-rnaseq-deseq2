@@ -1,0 +1,408 @@
+---
+title: "salmonella-rnaseq-deseq2"
+author: "Soungmin Hong (Course Bioinformatics 2)"
+date: "30/4/24, 3/5/24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Installing packages
+
+```{r}
+# if Bioconductor is not installed, install it
+###if (!require("BiocManager", quietly = TRUE))
+   ### install.packages("BiocManager")
+
+# Install from Bioconductor
+###BiocManager::install("DESeq2")
+###BiocManager::install("Rsubread")
+###BiocManager::install("apeglm")
+###BiocManager::install("EnhancedVolcano")
+###BiocManager::install("clusterProfiler")
+
+# Install from CRAN
+##install.packages("pheatmap")
+##install.packages("tidyverse")
+```
+
+## Loading packages
+
+```{r, echo = FALSE, message = FALSE}
+library(DESeq2)
+library(Rsubread)
+library(apeglm)
+library(EnhancedVolcano)
+library(clusterProfiler)
+library(pheatmap)
+library(tidyverse)
+```
+
+# HANDS-ON SESSION 2
+
+## Get count table from BAM files
+
+```{r}
+# Get BAM files
+ bam_files <- list.files(pattern = "\\.bam$")
+ # Get GFF file
+ gff_file <- "genomic.gff"
+```
+
+```{r}
+# Create count table
+ counts <- featureCounts(files = bam_files, annot.ext = gff_file, 
+isGTFAnnotationFile = TRUE, GTF.featureType = "gene", 
+GTF.attrType = "Name", isPairedEnd = TRUE,
+ requireBothEndsMapped = TRUE, nthreads = 4)
+```
+
+```{r}
+# Show count table
+counts$counts
+# or just first six lines of the count table
+head(counts$counts)
+# Show the position of the genes (extracted from GFF file) (first six lines)
+head(counts$annotation)
+# Show our input BAM files
+counts$targets
+# Show the summary statistics of our read quantification
+counts$stat
+
+
+# Obtain the count table from the counts object
+count_table <- data.frame(counts["counts"])
+# Change column names
+# Make sure that the column names correspond with the correct condition
+# First three samples were in glycerol medium, last three samples were in succinate medium
+colnames(count_table) <- c("glycerol_1", "glycerol_2", "glycerol_3",
+"succinate_1", "succinate_2", "succinate_3")
+# Take a look at the count table
+head(count_table)
+```
+
+## Count table input in DESeq2
+
+```{r}
+# Create coldata data.frame
+coldata <- data.frame(row.names = c("glycerol_1", "glycerol_2", "glycerol_3",
+"succinate_1", "succinate_2", "succinate_3"),
+condition = c(rep("glycerol", 3), rep("succinate", 3)),
+type = rep("paired-end", 6))
+coldata$condition <- factor(coldata$condition)
+coldata$type <- factor(coldata$type)
+# Take a look at coldata
+coldata
+# Create DESeqDataSet from our count table and additional column information
+dds <- DESeqDataSetFromMatrix(countData = count_table,
+colData = coldata,
+design = ~ condition)
+# Take a look at DESeqDataSet
+dds
+```
+
+## Filtering of genes
+
+```{r}
+ # Select the genes (rows) that have at least 10 reads summed over all samples
+ keep <- rowSums(counts(dds)) >= 10
+ # Subset the dataset by only keeping the genes that pass the filter
+ dds <- dds[keep,]
+ dds
+
+```
+
+## Differential expression analysis
+
+```{r}
+ # Perform the differential expression analysis and store the results in the dds object
+ dds <- DESeq(dds)
+ # Get the results of the analysis
+ res <- results(dds, contrast=c("condition", "succinate", "glycerol"),
+ alpha = 0.01)
+ res
+ # Shrink log-fold changes
+ resLFC <- lfcShrink(dds, coef="condition_succinate_vs_glycerol", type="apeglm")
+ resLFC
+```
+
+```{r}
+ # Show summary of results
+ summary(resLFC, alpha = 0.01)
+ # Show number of differentially expressed genes that have an adjusted p-value < 0.01
+ sum(resLFC$padj < 0.01, na.rm=TRUE)
+
+```
+
+```{r}
+ # Order genes based on the adjusted p-value
+ resLFCordered <- resLFC[order(resLFC$padj),]
+ resLFCordered
+```
+
+```{r}
+# Search for dcuB gene
+resLFC["dcuB",]
+```
+
+```{r}
+# Save figure
+ plotCounts(dds, gene="atpD", intgroup="condition")
+ jpeg(file="atpD.jpeg")
+ plotCounts(dds, gene="atpD", intgroup="condition")
+ dev.off()
+```
+
+
+## Plots
+
+```{r}
+ # Plot glpD gene expression
+ plotCounts(dds, gene="glpD", intgroup="condition")
+ # Save figure
+ jpeg(file="glpD_count_plot.jpeg")
+ plotCounts(dds, gene="glpD", intgroup="condition")
+ dev.off()
+```
+### Count plot
+
+```{r}
+ # Plot glpD gene expression
+ plotCounts(dds, gene="glpD", intgroup="condition")
+ # Save figure
+ jpeg(file="glpD_count_plot.jpeg")
+ plotCounts(dds, gene="glpD", intgroup="condition")
+ dev.off()
+
+ # Plot ompD gene expression
+ plotCounts(dds, gene="ompD", intgroup="condition")
+ # Save figure
+ jpeg(file="ompD_count_plot.jpeg")
+ plotCounts(dds, gene="ompD", intgroup="condition")
+ dev.off()
+
+ # Plot STM14_RS19940 gene expression
+ plotCounts(dds, gene="STM14_RS19940", intgroup="condition")
+ # Save figure
+ jpeg(file="STM14_RS19940_count_plot.jpeg")
+ plotCounts(dds, gene="STM14_RS19940", intgroup="condition")
+ dev.off()
+ 
+# Plot dcuB gene expression
+ plotCounts(dds, gene="dcuB", intgroup="condition")
+ # Save figure
+ jpeg(file="dcuB.jpeg")
+ plotCounts(dds, gene="dcuB", intgroup="condition")
+ dev.off()
+```
+
+### Heatmap
+
+```{r}
+library(grid)
+ # Select the top 20 genes
+select <- rownames(resLFCordered[1:20, ])
+
+ # Plot heatmap
+top_counts <- log2(counts(dds, normalized = TRUE)[rownames(dds) %in% select, ])
+
+# Save heatmap to JPEG
+jpeg("TOP.jpeg", width = 800, height = 800)
+
+p <- pheatmap(top_counts,
+              main = "Top 20 DEGs",
+              fontsize_row = 8,
+              fontsize_col = 10,
+              silent = TRUE)  
+
+grid::grid.newpage()
+grid::grid.draw(p$gtable)
+```
+
+# HANDS-ON SESSION 3
+
+### Volcano plot
+
+```{r}
+# Plot volcano plot
+EnhancedVolcano(resLFC,
+ lab = rownames(resLFC),
+ subtitle = "Salmonella gene expression succinate vs glycerol",
+ x = "log2FoldChange",
+ y = "padj",
+ pCutoffCol = "padj")
+
+# Save figure
+jpeg(file = "volcano.jpeg", width = 800, height = 800)
+
+# Plot volcano plot
+EnhancedVolcano(resLFC,
+ lab = rownames(resLFC),
+ subtitle = "Salmonella gene expression succinate vs glycerol",
+ x = "log2FoldChange",
+ y = "padj",
+ pCutoffCol = "padj")
+```
+
+### MA plot
+
+```{r}
+# Plot MA plot
+ plotMA(resLFC, alpha = 0.01)
+# Save figure
+jpeg("MA_plot.jpeg")
+ plotMA(resLFC, alpha = 0.01)
+
+```
+
+### PCA plot
+
+```{r}
+# Plot PCA plot of transformed variance
+
+# Save figure
+vsd <- vst(dds, blind=FALSE)
+jpeg("PCA_plot.jpeg", width = 800, height = 600, res = 120)
+ plotPCA(vsd, intgroup=c("condition", "type"))
+dev.off()
+```
+
+## GO over-representation analysis
+
+```{r}
+# Get significant genes (adjusted p-value < 0.01)
+ sign_genes <- resLFC[!is.na(resLFC$padj),]
+ sign_genes <- sign_genes[sign_genes$padj < 0.01,]
+ # Collecting the up-regulated genes
+ up_reg <- sign_genes[sign_genes$log2FoldChange > 0,]
+ # Check up-regulated genes and number of them
+ up_reg
+ nrow(up_reg)
+ # Get up-regulated gene names
+ up_reg_genes <- rownames(up_reg)
+ # Collecting the down-regulated genes
+ down_reg <- sign_genes[sign_genes$log2FoldChange < 0,]
+ # Check down-regulated genes and number of them
+ down_reg
+ nrow(down_reg)
+ # Get down-regulated gene names
+ down_reg_genes <- rownames(down_reg)
+```
+
+```{r}
+# Get gene list of all genes
+gene_list <- rownames(resLFC)
+```
+
+```{r}
+# Load in GO file
+GO2gene <- read.delim("GO2gene.tsv", col.names = c("GO", "gene"))
+```
+
+```{r}
+# Perform GO over-representation analysis for up-regulated genes
+GOoverrep_up <- enricher(gene = up_reg_genes, 
+universe = gene_list,
+ TERM2GENE = GO2gene)
+
+head(GOoverrep_up)
+ GOoverrep_up
+```
+
+```{r}
+# Get GO description that is linked to GO ID (for up-regulated genes)
+GOoverrep_up_df <- GOoverrep_up@result %>%
+ mutate(ID = str_trim(ID, "left"))
+ goterms <- read.delim("go_terms.tsv", header = FALSE)
+ GOoverrep_up_df <- left_join(GOoverrep_up_df, goterms, by = c("ID" = "V1"))
+ GOoverrep_up@result$Description <- GOoverrep_up_df$V2
+```
+
+```{r}
+# Plot some result figures for up-regulated genes
+ GOoverrep_up_df <- GOoverrep_up@result %>%
+ mutate(ID = str_trim(ID, "left"))
+ goterms <- read.delim("go_terms.tsv", header = FALSE)
+ GOoverrep_up_df <- left_join(GOoverrep_up_df, goterms, by = c("ID" = "V1"))
+ GOoverrep_up@result$Description <- GOoverrep_up_df$V2
+ 
+ 
+ barplot(GOoverrep_up, showCategory = 20)
+ dotplot(GOoverrep_up, showCategory = 20)
+ cnetplot(GOoverrep_up, node_label="all",
+ cex_label_gene = 0.8)
+ heatplot(GOoverrep_up, showCategory = 10)
+```
+
+```{r}
+ # Perform GO over-representation analysis for down-regulated genes
+ GOoverrep_down <- enricher(gene = down_reg_genes, 
+universe = gene_list,
+ TERM2GENE = GO2gene)
+ head(GOoverrep_down)
+ GOoverrep_down
+```
+
+```{r}
+# Get GO description that is linked to GO ID
+ GOoverrep_down_df <- GOoverrep_down@result %>%
+ mutate(ID = str_trim(ID, "left"))
+ goterms <- read.delim("go_terms.tsv", header = FALSE)
+ GOoverrep_down_df <- left_join(GOoverrep_down_df, goterms, by = c("ID" = "V1"))
+ GOoverrep_down@result$Description <- GOoverrep_down_df$V2
+
+```
+
+```{r}
+# Plot some result figures
+ barplot(GOoverrep_down, showCategory = 20)
+ dotplot(GOoverrep_down, showCategory = 20)
+ cnetplot(GOoverrep_down, node_label="all",
+ cex_label_gene = 0.8)
+ heatplot(GOoverrep_down, showCategory = 10)
+```
+
+## Regulon enrichment analysis
+
+```{r}
+# Load in regulon file
+ # Load in regulon file
+ regulon2gene <- read.delim("regulon2gene.tsv", col.names = c("regulon", "gene"))
+ # Take a look at the table
+ head(regulon2gene)
+```
+
+```{r}
+# Perform regulon over-representation analysis for up-regulated genes
+RGoverrep_up <- enricher(gene = up_reg_genes, universe = gene_list, TERM2GENE = regulon2gene)
+
+head(RGoverrep_up)
+RGoverrep_up
+```
+
+```{r}
+# Plot some result figures for up-regulated genes
+barplot(RGoverrep_up, showCategory = 20)
+dotplot(RGoverrep_up, showCategory = 20)
+cnetplot(RGoverrep_up, node_label="all", cex_label_gene = 0.8)
+heatplot(RGoverrep_up, showCategory = 10)
+```
+
+```{r}
+# Perform regulon over-representation analysis for down-regulated genes
+RGoverrep_down <- enricher(gene = down_reg_genes, universe = gene_list, TERM2GENE = regulon2gene)
+
+head(RGoverrep_down)
+RGoverrep_down
+```
+
+```{r}
+# Plot some result figures for down-regulated genes
+barplot(RGoverrep_down, showCategory = 20)
+dotplot(RGoverrep_down, showCategory = 20)
+cnetplot(RGoverrep_down, node_label="all", cex_label_gene = 0.8)
+heatplot(RGoverrep_down, showCategory = 10)
+```
+
