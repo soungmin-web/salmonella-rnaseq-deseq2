@@ -1,7 +1,5 @@
 # salmonella-rnaseq-deseq2
 
-**Author:** Soungmin Hong (Course *Bioinformatics 2*)
-
 [한국어](#한국어) | [English](#english)
 
 | PCA | Volcano plot |
@@ -13,6 +11,8 @@
 | ![Heatmap](TOP.jpeg) | ![GO dotplot](GO_upregulated_dotplot.jpeg) |
 
 ## 한국어
+
+**작성자:** 홍성민 (*Bioinformatics 2* 수업)
 
 ### 프로젝트 소개
 
@@ -37,6 +37,22 @@
 - 변화가 가장 유의한 유전자에는 증가한 *ompD*, *sucA*, *sucD*와 감소한 *glpD*, *ahpC*, *dnaK*가 있습니다.
 - 증가한 유전자에는 번역(translation), 리보솜, TCA 회로 관련 GO term이 많이 포함되어 있습니다.
 
+### 예상 결과와 실험 결과
+
+예상 결과는 수업 자료의 예시 값과, 원 논문([10.1126/science.aba8026](https://doi.org/10.1126/science.aba8026))을
+소개한 수업 자료의 설명을 바탕으로 정리했습니다. LFC는 succinate vs glycerol의 log2 fold change입니다.
+
+| 항목 | 예상 결과 | 실험 결과 | 일치 여부 |
+|---|---|---|---|
+| 필터 전 유전자 수 | 4,655 | 4,645 | 거의 일치 |
+| 필터 후 유전자 수 | 4,370 | 4,361 | 거의 일치 |
+| *glpD* | LFC −6.50, 약 90배 감소 | LFC −6.50, 약 90배 감소 (padj 6.9e-122) | 일치 |
+| *thrA* | LFC −0.70 | LFC −0.70 | 일치 |
+| *yaaA* | LFC −1.23 | LFC −1.23 | 일치 |
+| *dcuB* | 숙신산 능동 수송에 관여하므로 증가할 것으로 예상 | LFC 1.7, 약 3.3배 증가 (padj 0.002) | 일치 |
+| *ompD* | 유의하게 증가 | LFC 4.07, 약 17배 증가 (padj 1.7e-111) | 일치 |
+| STM14_RS19940 | 유의한 변화 없음 | LFC −0.001 (padj 0.997) | 일치 |
+
 ### 파일
 
 | 파일 | 내용 |
@@ -51,6 +67,8 @@ BAM 파일은 포함하지 않았습니다. 코드는 BAM 파일에서 시작하
 `counts.csv`를 `count_table`로 불러와야 합니다.
 
 ## English
+
+**Author:** Soungmin Hong (Course *Bioinformatics 2*)
 
 ### About
 
@@ -77,6 +95,23 @@ on the template provided by the course.
 - The most significant genes include *ompD*, *sucA* and *sucD* (up) and *glpD*, *ahpC* and *dnaK* (down).
 - GO terms for translation, the ribosome and the TCA cycle are over-represented among the
   up-regulated genes.
+
+### Expected and observed results
+
+The expected results come from the example values in the course handout and from its description of
+the original paper ([10.1126/science.aba8026](https://doi.org/10.1126/science.aba8026)). LFC is the
+log2 fold change of succinate vs glycerol.
+
+| Item | Expected | Observed | Agreement |
+|---|---|---|---|
+| Genes before filtering | 4,655 | 4,645 | Close |
+| Genes after filtering | 4,370 | 4,361 | Close |
+| *glpD* | LFC −6.50, about 90x lower | LFC −6.50, about 90x lower (padj 6.9e-122) | Yes |
+| *thrA* | LFC −0.70 | LFC −0.70 | Yes |
+| *yaaA* | LFC −1.23 | LFC −1.23 | Yes |
+| *dcuB* | Higher, because it takes part in active succinate transport | LFC 1.7, about 3.3x higher (padj 0.002) | Yes |
+| *ompD* | Significantly higher | LFC 4.07, about 17x higher (padj 1.7e-111) | Yes |
+| STM14_RS19940 | No significant change | LFC −0.001 (padj 0.997) | Yes |
 
 ### Files
 
