@@ -24,6 +24,17 @@
 
 ### 분석 과정
 
+**1단계: 전처리 (`preprocessing.sh`, Linux)**
+
+1. `fastq-dump`로 SRA에서 paired-end read 다운로드
+2. FastQC와 MultiQC로 원본 read의 품질 확인(QC)
+3. Trimmomatic으로 adapter와 품질이 낮은 염기 제거(trimming)
+4. Trimming 후 FastQC와 MultiQC로 품질 재확인
+5. STAR로 *S.* Typhimurium 14028S 참조 유전체에 mapping하여 BAM 파일 생성
+6. `samtools`로 BAM index 생성(IGV 시각화용)
+
+**2단계: 차등 발현 분석 (R Markdown)**
+
 1. `featureCounts`(Rsubread)로 BAM 파일에서 유전자별 read 수 계산
 2. 6개 샘플의 read 합계가 10 미만인 유전자 제외
 3. DESeq2로 차등 발현 분석, apeglm으로 log2 fold change 보정
@@ -57,14 +68,15 @@
 
 | 파일 | 내용 |
 |---|---|
-| `Hands-on_session2-3_template_2025.Rmd` | 분석 코드 |
+| `preprocessing.sh` | 다운로드, QC, trimming, mapping 명령어 |
+| `Hands-on_session2-3_template_2025.Rmd` | 차등 발현 분석 코드 |
 | `counts.csv` | `featureCounts` 결과(유전자 4,645개, 샘플 6개) |
 | `genomic.gff` | NCBI RefSeq 유전체 주석, GCF_000022165.1 (ASM2216v1) |
 | `GO2gene.tsv`, `go_terms.tsv`, `regulon2gene.tsv` | enrichment 분석용 유전자 세트 |
 | `*.jpeg` | 결과 그림 |
 
-BAM 파일은 포함하지 않았습니다. 코드는 BAM 파일에서 시작하므로, DESeq2 단계부터 실행하려면
-`counts.csv`를 `count_table`로 불러와야 합니다.
+BAM 파일은 포함하지 않았습니다. R Markdown 코드는 `preprocessing.sh` 단계의 BAM 파일에서 시작하므로,
+BAM 없이 DESeq2 단계부터 실행하려면 `counts.csv`를 `count_table`로 불러와야 합니다.
 
 ## English
 
@@ -80,6 +92,17 @@ It was a hands-on project for the course *Bioinformatics 2* (2025). The R Markdo
 on the template provided by the course.
 
 ### Workflow
+
+**Step 1: Preprocessing (`preprocessing.sh`, Linux)**
+
+1. Download the paired-end reads from SRA with `fastq-dump`
+2. Check the quality of the raw reads with FastQC and MultiQC
+3. Trim adapters and low-quality bases with Trimmomatic
+4. Check the quality again after trimming with FastQC and MultiQC
+5. Map the reads to the *S.* Typhimurium 14028S reference genome with STAR to get BAM files
+6. Index the BAM files with `samtools` for viewing in IGV
+
+**Step 2: Differential expression (R Markdown)**
 
 1. Count reads per gene from BAM files with `featureCounts` (Rsubread)
 2. Remove genes with fewer than 10 reads summed over the six samples
@@ -117,14 +140,16 @@ log2 fold change of succinate vs glycerol.
 
 | File | Content |
 |---|---|
-| `Hands-on_session2-3_template_2025.Rmd` | Analysis code |
+| `preprocessing.sh` | Commands for download, QC, trimming and mapping |
+| `Hands-on_session2-3_template_2025.Rmd` | Differential expression code |
 | `counts.csv` | `featureCounts` output (4,645 genes, 6 samples) |
 | `genomic.gff` | NCBI RefSeq annotation, GCF_000022165.1 (ASM2216v1) |
 | `GO2gene.tsv`, `go_terms.tsv`, `regulon2gene.tsv` | Gene sets for enrichment |
 | `*.jpeg` | Figures |
 
-The BAM files are not included. The code starts from them, so `counts.csv` has to be loaded as
-`count_table` to run the analysis from the DESeq2 step.
+The BAM files are not included. The R Markdown code starts from the BAM files of the
+`preprocessing.sh` step, so to run it from the DESeq2 step without them, load `counts.csv` as
+`count_table`.
 
 ## Data source
 
